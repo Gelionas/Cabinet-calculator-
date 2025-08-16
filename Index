@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cabinet Diagonal Calculator</title>
+<style>
+  :root { --bg:#0f1220; --panel:#161a2e; --ink:#f2f4ff; --muted:#9aa3c0; --accent:#5ec2ff; --line:#232748; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding: 20px clamp(16px, 4vw, 40px); border-bottom:1px solid var(--line); }
+  header h1 { margin:0 0 6px; font-size: clamp(20px, 3.4vw, 28px); }
+  header p { margin:0; color:var(--muted); }
+  main { padding: 24px clamp(16px, 4vw, 40px) 40px; display:grid; gap:20px; grid-template-columns: 1fr; }
+  @media (min-width: 980px) { main { grid-template-columns: 1fr 1fr; } }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; }
+  .card h2 { margin:0 0 12px; font-size: 18px; }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  .row-3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+  label { font-size: 13px; color: var(--muted); display:block; margin: 2px 0 6px; }
+  input[type="number"], input[type="text"] {
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+    background:#0d1030; color:var(--ink); font-size:14px; outline:none;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .result {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 12px; background:#0b0e29; border:1px solid var(--line); border-radius:10px; min-height:44px;
+    font-variant-numeric: tabular-nums;
+  }
+  button {
+    background: linear-gradient(180deg, #2a70ff, #1859e6);
+    border:none; color:white; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600;
+  }
+  button.secondary { background:#1d2245; border:1px solid var(--line); }
+  .pill { display:inline-block; padding:5px 8px; border-radius:999px; background:#0b1138; border:1px solid var(--line); color:var(--muted); font-size:12px; }
+  .grid { display:grid; gap:10px; }
+  .two { grid-template-columns: 1fr 1fr; }
+  footer { color:var(--muted); padding:12px clamp(16px,4vw,40px) 32px; border-top:1px solid var(--line); font-size:13px; }
+  .hint { margin-top:6px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Cabinet Diagonal Calculator</h1>
+    <p>Convert cabinet spans to diagonal counts on a grid, and back. Expandable as we add more cabinet design helpers.</p>
+  </header>
+
+  <main>
+    <!-- SETTINGS -->
+    <section class="card">
+      <h2>Square / Diagonal Settings</h2>
+      <div class="row">
+        <div>
+          <label for="leg">Square leg (inches)</label>
+          <input id="leg" type="number" inputmode="decimal" min="0" step="0.001" value="3" />
+          <div class="hint muted">Typical base cab grid uses 3″.</div>
+        </div>
+        <div>
+          <label>Diagonal per square (inches)</label>
+          <div class="result" id="diagPerSquare">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LENGTH → DIAGONALS -->
+    <section class="card">
+      <h2>Length → # of Diagonals</h2>
+      <div class="row">
+        <div>
+          <label for="lenFt">Feet</label>
+          <input id="lenFt" type="number" inputmode="numeric" min="0" step="1" value="0" />
+        </div>
+        <div>
+          <label for="lenIn">Inches</label>
+          <input id="lenIn" type="number" inputmode="decimal" min="0" step="0.001" value="0" />
+        </div>
+      </div>
+      <div class="row-3" style="margin-top:10px">
+        <div>
+          <label for="fracNum">Fraction numerator</label>
+          <input id="fracNum" type="number" inputmode="numeric" step="1" value="0" />
+        </div>
+        <div>
+          <label for="fracDen">Fraction denominator</label>
+          <input id="fracDen" type="number" inputmode="numeric" step="1" value="1" />
+        </div>
+        <div>
+          <label>Total length (in)</label>
+          <div class="result" id="totalIn">—</div>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <label># of diagonals</label>
+          <div class="result" id="outDiags">— <button class="secondary" id="copyDiags">Copy</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DIAGONALS → LENGTH -->
+    <section class="card">
+      <h2># of Diagonals → Length</h2>
+      <div class="row">
+        <div>
+          <label for="inDiags">Target diagonals</label>
+          <input id="inDiags" type="number" inputmode="decimal" min="0" step="0.001" value="0" />
+        </div>
+        <div>
+          <label>Equivalent length (in)</label>
+          <div class="result" id="eqInches">—</div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>Feet</label>
+          <div class="result" id="eqFeet">—</div>
+        </div>
+        <div>
+          <label>Inches (whole)</label>
+          <div class="result" id="eqInchesWhole">—</div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>Remainder (in)</label>
+          <div class="result" id="eqRemainder">—</div>
+        </div>
+        <div>
+          <label>Remainder (nearest 1/16″)</label>
+          <div class="result" id="eqFraction">— <span class="pill" id="eqAsText"></span></div>
+        </div>
+      </div>
+      <div class="hint muted" style="margin-top:8px">Rounded to nearest 1/16″.</div>
+    </section>
+  </main>
+
+  <footer>
+    Built for quick cabinet math. √2 × leg drives the diagonal length. Add-ons: toe-kick allowances, corner fillers, overlay styles, appliance gaps, etc.
+  </footer>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n, d=3) => (Number.isFinite(n) ? n.toFixed(d) : "—");
+
+  const leg = $("leg");
+  const diagPerSquare = $("diagPerSquare");
+
+  const lenFt = $("lenFt"), lenIn = $("lenIn"), fracNum = $("fracNum"), fracDen = $("fracDen");
+  const totalIn = $("totalIn"), outDiags = $("outDiags"), copyDiags = $("copyDiags");
+
+  const inDiags = $("inDiags");
+  const eqInches = $("eqInches"), eqFeet = $("eqFeet"), eqInchesWhole = $("eqInchesWhole"),
+        eqRemainder = $("eqRemainder"), eqFraction = $("eqFraction"), eqAsText = $("eqAsText");
+
+  function diagLen() {
+    const L = parseFloat(leg.value);
+    if (!(L > 0)) return NaN;
+    return Math.SQRT2 * L;
+  }
+
+  function toTotalInches() {
+    const ft = parseFloat(lenFt.value) || 0;
+    const inch = parseFloat(lenIn.value) || 0;
+    const num = parseFloat(fracNum.value) || 0;
+    const den = parseFloat(fracDen.value) || 0;
+    const frac = den > 0 ? (num / den) : 0;
+    return ft * 12 + inch + frac;
+  }
+
+  function roundTo16ths(x) {
+    const sixteenths = Math.round(x * 16);
+    const whole = Math.floor(sixteenths / 16);
+    const rem = sixteenths % 16;
+    return { whole, rem, den: 16 };
+  }
+
+  function updateSettings() {
+    const d = diagLen();
+    diagPerSquare.textContent = Number.isFinite(d) ? fmt(d, 4) + " in" : "—";
+    updateLenToDiags();
+    updateDiagsToLen();
+  }
+
+  function updateLenToDiags() {
+    const d = diagLen();
+    const inches = toTotalInches();
+    totalIn.textContent = fmt(inches, 3) + " in";
+    const diags = inches > 0 && d > 0 ? inches / d : NaN;
+    outDiags.firstChild.nodeValue = Number.isFinite(diags) ? fmt(diags, 3) : "—";
+  }
+
+  function updateDiagsToLen() {
+    const d = diagLen();
+    const n = parseFloat(inDiags.value);
+    const inches = (n > 0 && d > 0) ? (n * d) : NaN;
+    eqInches.textContent = Number.isFinite(inches) ? fmt(inches, 3) + " in" : "—";
+
+    if (!Number.isFinite(inches)) {
+      eqFeet.textContent = eqInchesWhole.textContent = eqRemainder.textContent = "—";
+      eqFraction.firstChild.nodeValue = "—";
+      eqAsText.textContent = "";
+      return;
+    }
+    const feet = Math.floor(inches / 12);
+    const inchesLeft = inches - feet * 12;
+    const whole = Math.floor(inchesLeft);
+    const rem = inchesLeft - whole;
+
+    eqFeet.textContent = feet;
+    eqInchesWhole.textContent = whole;
+
+    const round = roundTo16ths(rem);
+    const remIn = round.whole + (round.rem / round.den);
+    eqRemainder.textContent = fmt(remIn, 3) + " in";
+
+    let fracStr = (round.rem === 0) ? "0/16" : `${round.rem}/16`;
+    eqFraction.firstChild.nodeValue = fracStr;
+
+    // A friendly “5′ 7 3/16″” pill
+    const pretty = `${feet}′ ${whole}${round.rem ? ` ${round.rem}/16` : ""}″`;
+    eqAsText.textContent = pretty;
+  }
+
+  function copy(text) {
+    navigator.clipboard.writeText(text).then(()=> {
+      const t = event?.target;
+      if (t && t.tagName === "BUTTON") {
+        const old = t.textContent;
+        t.textContent = "Copied!";
+        setTimeout(()=> t.textContent = old, 900);
+      }
+    });
+  }
+
+  leg.addEventListener("input", updateSettings);
+
+  [lenFt, lenIn, fracNum, fracDen].forEach(el => {
+    el.addEventListener("input", updateLenToDiags);
+  });
+
+  inDiags.addEventListener("input", updateDiagsToLen);
+
+  copyDiags.addEventListener("click", () => copy(outDiags.firstChild.nodeValue.trim()));
+
+  // init
+  updateSettings();
+})();
+</script>
+</body>
+</html>
