@@ -45,7 +45,7 @@
 <body>
   <header>
     <h1>Cabinet Diagonal Calculator</h1>
-    <p>Convert cabinet spans to diagonal counts on a grid, and back. Expandable as we add more cabinet design helpers.</p>
+    <p>Convert cabinet spans to diagonal counts on a grid, straight box counts, and back. Expandable as we add more helpers.</p>
   </header>
 
   <main>
@@ -135,10 +135,63 @@
       </div>
       <div class="hint muted" style="margin-top:8px">Rounded to nearest 1/16″.</div>
     </section>
+
+    <!-- NEW: LENGTH → BOX COUNT -->
+    <section class="card">
+      <h2>Length → Box Count</h2>
+      <div class="row">
+        <div>
+          <label for="boxSize">Box size (inches)</label>
+          <input id="boxSize" type="number" inputmode="decimal" min="0.001" step="0.001" value="3" />
+          <div class="hint muted">Each straight “box” = 3″ by default.</div>
+        </div>
+        <div>
+          <label>Total length (in)</label>
+          <div class="result" id="boxTotalIn">—</div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="boxFt">Feet</label>
+          <input id="boxFt" type="number" inputmode="numeric" min="0" step="1" value="0" />
+        </div>
+        <div>
+          <label for="boxIn">Inches</label>
+          <input id="boxIn" type="number" inputmode="decimal" min="0" step="0.001" value="0" />
+        </div>
+      </div>
+
+      <div class="row-3" style="margin-top:10px">
+        <div>
+          <label for="boxFracNum">Fraction numerator</label>
+          <input id="boxFracNum" type="number" inputmode="numeric" step="1" value="0" />
+        </div>
+        <div>
+          <label for="boxFracDen">Fraction denominator</label>
+          <input id="boxFracDen" type="number" inputmode="numeric" step="1" value="1" />
+        </div>
+        <div>
+          <label>Boxes (decimal)</label>
+          <div class="result" id="boxCount">— <button class="secondary" id="copyBoxes">Copy</button></div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>Whole boxes</label>
+          <div class="result" id="boxWhole">—</div>
+        </div>
+        <div>
+          <label>Remainder (in & nearest 1/16″)</label>
+          <div class="result" id="boxRemainder">— <span class="pill" id="boxRemPretty"></span></div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer>
-    Built for quick cabinet math. √2 × leg drives the diagonal length. Add-ons: toe-kick allowances, corner fillers, overlay styles, appliance gaps, etc.
+    Built for quick cabinet math. √2 × leg drives diagonal length. Box count divides straight inches by box size (default 3″).
   </footer>
 
 <script>
@@ -146,15 +199,24 @@
   const $ = (id) => document.getElementById(id);
   const fmt = (n, d=3) => (Number.isFinite(n) ? n.toFixed(d) : "—");
 
+  // --- Diagonal settings
   const leg = $("leg");
   const diagPerSquare = $("diagPerSquare");
 
+  // --- Length → Diagonals
   const lenFt = $("lenFt"), lenIn = $("lenIn"), fracNum = $("fracNum"), fracDen = $("fracDen");
   const totalIn = $("totalIn"), outDiags = $("outDiags"), copyDiags = $("copyDiags");
 
+  // --- Diagonals → Length
   const inDiags = $("inDiags");
   const eqInches = $("eqInches"), eqFeet = $("eqFeet"), eqInchesWhole = $("eqInchesWhole"),
         eqRemainder = $("eqRemainder"), eqFraction = $("eqFraction"), eqAsText = $("eqAsText");
+
+  // --- Length → Box Count
+  const boxSize = $("boxSize");
+  const boxFt = $("boxFt"), boxIn = $("boxIn"), boxFracNum = $("boxFracNum"), boxFracDen = $("boxFracDen");
+  const boxTotalIn = $("boxTotalIn"), boxCount = $("boxCount"), copyBoxes = $("copyBoxes");
+  const boxWhole = $("boxWhole"), boxRemainder = $("boxRemainder"), boxRemPretty = $("boxRemPretty");
 
   function diagLen() {
     const L = parseFloat(leg.value);
@@ -162,13 +224,13 @@
     return Math.SQRT2 * L;
   }
 
-  function toTotalInches() {
-    const ft = parseFloat(lenFt.value) || 0;
-    const inch = parseFloat(lenIn.value) || 0;
-    const num = parseFloat(fracNum.value) || 0;
-    const den = parseFloat(fracDen.value) || 0;
-    const frac = den > 0 ? (num / den) : 0;
-    return ft * 12 + inch + frac;
+  function toTotalInches(ft, inch, num, den) {
+    const f = parseFloat(ft) || 0;
+    const i = parseFloat(inch) || 0;
+    const n = parseFloat(num) || 0;
+    const d = parseFloat(den) || 0;
+    const frac = d > 0 ? (n / d) : 0;
+    return f * 12 + i + frac;
   }
 
   function roundTo16ths(x) {
@@ -178,21 +240,25 @@
     return { whole, rem, den: 16 };
   }
 
+  // --- Settings
   function updateSettings() {
     const d = diagLen();
     diagPerSquare.textContent = Number.isFinite(d) ? fmt(d, 4) + " in" : "—";
     updateLenToDiags();
     updateDiagsToLen();
+    updateBoxCount();
   }
 
+  // --- Length → Diagonals
   function updateLenToDiags() {
     const d = diagLen();
-    const inches = toTotalInches();
+    const inches = toTotalInches(lenFt.value, lenIn.value, fracNum.value, fracDen.value);
     totalIn.textContent = fmt(inches, 3) + " in";
     const diags = inches > 0 && d > 0 ? inches / d : NaN;
     outDiags.firstChild.nodeValue = Number.isFinite(diags) ? fmt(diags, 3) : "—";
   }
 
+  // --- Diagonals → Length
   function updateDiagsToLen() {
     const d = diagLen();
     const n = parseFloat(inDiags.value);
@@ -220,31 +286,57 @@
     let fracStr = (round.rem === 0) ? "0/16" : `${round.rem}/16`;
     eqFraction.firstChild.nodeValue = fracStr;
 
-    // A friendly “5′ 7 3/16″” pill
     const pretty = `${feet}′ ${whole}${round.rem ? ` ${round.rem}/16` : ""}″`;
     eqAsText.textContent = pretty;
   }
 
-  function copy(text) {
+  // --- Length → Box Count
+  function updateBoxCount() {
+    const bs = parseFloat(boxSize.value);
+    const inches = toTotalInches(boxFt.value, boxIn.value, boxFracNum.value, boxFracDen.value);
+    boxTotalIn.textContent = fmt(inches, 3) + " in";
+
+    const boxes = (bs > 0 && inches >= 0) ? inches / bs : NaN;
+    boxCount.firstChild.nodeValue = Number.isFinite(boxes) ? fmt(boxes, 3) : "—";
+
+    if (!Number.isFinite(boxes)) {
+      boxWhole.textContent = "—";
+      boxRemainder.textContent = "—";
+      boxRemPretty.textContent = "";
+      return;
+    }
+
+    const whole = Math.floor(boxes);
+    const remInches = inches - whole * bs;
+
+    // Remainder in inches, show nearest 1/16"
+    const round = roundTo16ths(remInches);
+    const remAsInches = round.whole + (round.rem / round.den);
+
+    boxWhole.textContent = whole;
+    boxRemainder.textContent = fmt(remAsInches, 3) + " in";
+    boxRemPretty.textContent = `${round.whole}${round.rem ? ` ${round.rem}/16` : ""}″`;
+  }
+
+  function copy(text, btn) {
     navigator.clipboard.writeText(text).then(()=> {
-      const t = event?.target;
-      if (t && t.tagName === "BUTTON") {
-        const old = t.textContent;
-        t.textContent = "Copied!";
-        setTimeout(()=> t.textContent = old, 900);
+      if (btn) {
+        const old = btn.textContent;
+        btn.textContent = "Copied!";
+        setTimeout(()=> btn.textContent = old, 900);
       }
     });
   }
 
+  // Events
   leg.addEventListener("input", updateSettings);
-
-  [lenFt, lenIn, fracNum, fracDen].forEach(el => {
-    el.addEventListener("input", updateLenToDiags);
-  });
-
+  [lenFt, lenIn, fracNum, fracDen].forEach(el => el.addEventListener("input", updateLenToDiags));
   inDiags.addEventListener("input", updateDiagsToLen);
 
-  copyDiags.addEventListener("click", () => copy(outDiags.firstChild.nodeValue.trim()));
+  [boxSize, boxFt, boxIn, boxFracNum, boxFracDen].forEach(el => el.addEventListener("input", updateBoxCount));
+
+  copyDiags.addEventListener("click", (e)=> copy(outDiags.firstChild.nodeValue.trim(), e.target));
+  copyBoxes.addEventListener("click", (e)=> copy(boxCount.firstChild.nodeValue.trim(), e.target));
 
   // init
   updateSettings();
